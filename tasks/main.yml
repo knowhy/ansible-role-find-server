@@ -80,7 +80,7 @@
   command: make
   args:
     chdir: "/opt/svm/{{ libsvm_version.stdout }}"
-  when: download_status.changed
+  when: svm_download_status.changed
 
 - name: Copy binaries to $PATH.
   copy:
