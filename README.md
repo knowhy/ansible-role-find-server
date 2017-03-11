@@ -1,6 +1,8 @@
 ansible-role-find-server
 ========================
 
+[![Build Status](https://travis-ci.org/knowhy/ansible-role-find-server.svg?branch=master)](https://travis-ci.org/knowhy/ansible-role-find-server)
+
 Installs [find](https://www.internalpositioning.com/) framework for internal navigation and discovery server component and `svm` dependency on ARM and x86_64 systems.
 
 Requirements
