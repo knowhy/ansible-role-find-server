@@ -1,0 +1,10 @@
+[Unit]
+Description=Find server.
+
+[Service]
+Type=forking
+User={{ find_user }}
+ExecStart=/usr/bin/findserver
+
+[Install]
+WantedBy=multi-user.target

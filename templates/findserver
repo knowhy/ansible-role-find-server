@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+cd {{ find_home }}
+./findserver > {{ find_log_directory }}/find.log &

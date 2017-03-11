@@ -1,0 +1,115 @@
+---
+
+- name: Install build dependencies.
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - unzip
+    - gcc
+    - make
+
+- name: Ensure find group is present.
+  group:
+    name: "{{ find_group }}"
+    state: present
+
+- name: Ensure find user is present.
+  user:
+    name: "{{ find_user }}"
+    state: present
+    system: True
+
+- name: Ensure path for find is present.
+  file:
+    path: "{{ find_home }}"
+    state: directory
+    owner: "{{ find_user }}"
+    group: "{{ find_group }}"
+
+- name: Ensure log path for find is present.
+  file:
+    path: "{{ find_log_directory }}"
+    state: directory
+    owner: "{{ find_user }}"
+    group: "{{ find_group }}"
+
+- name: Ensure path for SVM is present.
+  file:
+    path: /opt/svm
+    state: directory
+
+- set_fact:
+    find_cpu_arch: arm
+  when: ansible_architecture | search("arm")
+
+- set_fact:
+    find_cpu_arch: amd64
+
+- name: Download find server artifact.
+  get_url:
+    url: "https://github.com/schollz/find/releases/download/v{{ find_version }}/find_{{ find_version }}_linux_{{ find_cpu_arch }}.zip"
+    dest: "/opt/find_{{ find_version }}_linux_{{ find_cpu_arch }}.zip"
+  register: find_download_status
+
+- name: Unpack find server artifact.
+  unarchive:
+    src: "/opt/find_{{ find_version }}_linux_{{ find_cpu_arch }}.zip"
+    dest: /opt/find
+    remote_src: True
+  when: find_download_status.changed
+
+- name: Get SVM source code.
+  get_url:
+    url: http://www.csie.ntu.edu.tw/~cjlin/cgi-bin/libsvm.cgi?+http://www.csie.ntu.edu.tw/~cjlin/libsvm+tar.gz
+    dest: /opt/svm/libsvm+tar.gz
+  register: svm_download_status
+
+- name: Unpack SVM source code.
+  unarchive:
+    src: /opt/svm/libsvm+tar.gz
+    dest: /opt/svm
+    remote_src: True
+  when: svm_download_status.changed
+
+- name: Get lastest installed libsvm version.
+  shell: ls /opt/svm/ | grep libsvm | grep -v tar | head -n 1
+  register: libsvm_version
+
+- name: Build SVM.
+  command: make
+  args:
+    chdir: "/opt/svm/{{ libsvm_version.stdout }}"
+  when: download_status.changed
+
+- name: Copy binaries to $PATH.
+  copy:
+    src: "/opt/svm/{{ libsvm_version.stdout }}/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    remote_src: True
+  with_items:
+    - svm-scale
+    - svm-predict
+    - svm-train
+
+- name: Ensure start script is present.
+  template:
+    src: findserver
+    dest: /usr/bin/findserver
+    mode: 0700
+
+- name: Ensure unit file is present.
+  template:
+    src: find.service.j2
+    dest: /etc/systemd/system/find.service
+  register: find_unit
+
+- name: Reload Systemd.
+  command: systemctl daemon-reload
+  when: find_unit.changed
+
+- name: Start and enable find server.
+  service:
+    name: find
+    state: started
+    enabled: True

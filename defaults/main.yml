@@ -1,0 +1,10 @@
+---
+
+find_version: 2.4.1
+
+find_user: find
+find_group: find
+
+find_home: /opt/find
+
+find_log_directory: /var/log/find
